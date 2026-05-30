@@ -1,0 +1,328 @@
+
+<h2 class="sr-only">Banking Analytics SQL Project — interactive portfolio dashboard showing KPIs, charts, and query explorer</h2>
+
+<style>
+  :root { --accent: #1D9E75; --accent-dim: #0F6E56; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--font-sans); }
+
+  .header { padding: 1.5rem 0 1rem; border-bottom: 0.5px solid var(--color-border-tertiary); margin-bottom: 1.25rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+  .header-left { display: flex; align-items: center; gap: 12px; }
+  .logo { width: 36px; height: 36px; border-radius: 8px; background: #1D9E75; display: flex; align-items: center; justify-content: center; }
+  .logo i { color: #fff; font-size: 18px; }
+  .title { font-size: 16px; font-weight: 500; color: var(--color-text-primary); }
+  .subtitle { font-size: 12px; color: var(--color-text-secondary); margin-top: 2px; }
+  .badge { font-size: 11px; padding: 3px 10px; border-radius: 20px; background: #E1F5EE; color: #0F6E56; font-weight: 500; }
+
+  .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 1.25rem; }
+  .kpi { background: var(--color-background-secondary); border-radius: var(--border-radius-md); padding: 14px 16px; }
+  .kpi-label { font-size: 11px; color: var(--color-text-secondary); text-transform: none; margin-bottom: 6px; display: flex; align-items: center; gap: 5px; }
+  .kpi-value { font-size: 22px; font-weight: 500; color: var(--color-text-primary); line-height: 1; }
+  .kpi-sub { font-size: 11px; color: var(--color-text-secondary); margin-top: 4px; }
+  .kpi-up { color: #1D9E75; }
+  .kpi-down { color: #E24B4A; }
+
+  .tabs { display: flex; gap: 4px; margin-bottom: 1rem; border-bottom: 0.5px solid var(--color-border-tertiary); padding-bottom: 0; }
+  .tab { font-size: 13px; color: var(--color-text-secondary); padding: 7px 14px; border-radius: 6px 6px 0 0; cursor: pointer; border: 0.5px solid transparent; border-bottom: none; transition: all .15s; }
+  .tab:hover { background: var(--color-background-secondary); color: var(--color-text-primary); }
+  .tab.active { background: var(--color-background-primary); color: var(--color-text-primary); border-color: var(--color-border-tertiary); font-weight: 500; position: relative; bottom: -0.5px; }
+
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  .charts-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 1.25rem; }
+  .chart-card { background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding: 1rem 1.25rem; }
+  .chart-title { font-size: 13px; font-weight: 500; color: var(--color-text-primary); margin-bottom: 4px; }
+  .chart-sub { font-size: 11px; color: var(--color-text-secondary); margin-bottom: 12px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 10px; font-size: 11px; color: var(--color-text-secondary); }
+  .legend-dot { width: 9px; height: 9px; border-radius: 2px; display: inline-block; margin-right: 4px; vertical-align: middle; }
+
+  .query-list { display: flex; flex-direction: column; gap: 8px; }
+  .q-item { background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-md); padding: 12px 14px; cursor: pointer; transition: border-color .15s; }
+  .q-item:hover { border-color: var(--color-border-secondary); }
+  .q-item.open { border-color: #1D9E75; }
+  .q-header { display: flex; align-items: center; gap: 10px; }
+  .q-num { font-size: 11px; font-weight: 500; color: #1D9E75; background: #E1F5EE; padding: 2px 8px; border-radius: 20px; min-width: 30px; text-align: center; }
+  .q-title { font-size: 13px; font-weight: 500; color: var(--color-text-primary); flex: 1; }
+  .q-tag { font-size: 10px; padding: 2px 7px; border-radius: 20px; }
+  .tag-win { background: #E6F1FB; color: #185FA5; }
+  .tag-cte { background: #FAEEDA; color: #854F0B; }
+  .tag-agg { background: #EEEDFE; color: #534AB7; }
+  .tag-rec { background: #FAECE7; color: #993C1D; }
+  .q-desc { font-size: 12px; color: var(--color-text-secondary); margin-top: 8px; line-height: 1.6; display: none; padding-top: 8px; border-top: 0.5px solid var(--color-border-tertiary); }
+  .q-item.open .q-desc { display: block; }
+  .q-concepts { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 5px; }
+  .concept { font-size: 10px; font-family: var(--font-mono); padding: 2px 7px; border-radius: 4px; background: var(--color-background-secondary); color: var(--color-text-secondary); }
+
+  .schema-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; }
+  .table-card { background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-md); padding: 12px 14px; }
+  .table-name { font-size: 13px; font-weight: 500; color: var(--color-text-primary); margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+  .table-name i { color: #1D9E75; font-size: 15px; }
+  .col-list { font-size: 11px; color: var(--color-text-secondary); line-height: 2; }
+  .col-pk { color: #BA7517; font-weight: 500; }
+  .col-fk { color: #185FA5; }
+
+  .file-list { display: flex; flex-direction: column; gap: 6px; }
+  .file-item { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: var(--color-background-secondary); border-radius: var(--border-radius-md); font-size: 12px; }
+  .file-icon { font-size: 16px; color: #1D9E75; }
+  .file-name { font-weight: 500; color: var(--color-text-primary); flex: 1; font-family: var(--font-mono); }
+  .file-desc { color: var(--color-text-secondary); font-size: 11px; }
+  .file-lines { font-size: 11px; color: var(--color-text-tertiary); }
+
+  .section-label { font-size: 11px; font-weight: 500; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: .05em; margin: 1.25rem 0 .6rem; }
+
+  @media (max-width: 520px) { .charts-row { grid-template-columns: 1fr; } }
+</style>
+
+<div class="header">
+  <div class="header-left">
+    <div class="logo"><i class="ti ti-building-bank" aria-hidden="true"></i></div>
+    <div>
+      <div class="title">Banking Analytics SQL Project</div>
+      <div class="subtitle">PostgreSQL 15 · Finance & Banking · Portfolio</div>
+    </div>
+  </div>
+  <span class="badge"><i class="ti ti-circle-check" aria-hidden="true" style="font-size:12px; vertical-align:-1px; margin-right:3px;"></i>20 Queries · 9 Tables · 5 Views</span>
+</div>
+
+<div class="kpi-grid">
+  <div class="kpi">
+    <div class="kpi-label"><i class="ti ti-users" aria-hidden="true" style="font-size:13px;"></i>Customers</div>
+    <div class="kpi-value">40</div>
+    <div class="kpi-sub">4 segments · 10 branches</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-label"><i class="ti ti-credit-card" aria-hidden="true" style="font-size:13px;"></i>Accounts</div>
+    <div class="kpi-value">47</div>
+    <div class="kpi-sub kpi-up">₹52.4Cr total AUM</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-label"><i class="ti ti-receipt" aria-hidden="true" style="font-size:13px;"></i>Transactions</div>
+    <div class="kpi-value">55</div>
+    <div class="kpi-sub">Multi-channel · 2024</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-label"><i class="ti ti-file-invoice" aria-hidden="true" style="font-size:13px;"></i>Loan Book</div>
+    <div class="kpi-value">24</div>
+    <div class="kpi-sub kpi-down">2 NPA · ₹94Cr o/s</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-label"><i class="ti ti-alert-triangle" aria-hidden="true" style="font-size:13px;"></i>Risk Flags</div>
+    <div class="kpi-value">7</div>
+    <div class="kpi-sub kpi-down">3 High severity</div>
+  </div>
+</div>
+
+<div class="tabs" role="tablist">
+  <div class="tab active" role="tab" onclick="switchTab('overview')">Overview</div>
+  <div class="tab" role="tab" onclick="switchTab('queries')">Queries</div>
+  <div class="tab" role="tab" onclick="switchTab('schema')">Schema</div>
+  <div class="tab" role="tab" onclick="switchTab('files')">Files</div>
+</div>
+
+<div id="panel-overview" class="panel active">
+  <div class="charts-row">
+    <div class="chart-card">
+      <div class="chart-title">Loan portfolio by type</div>
+      <div class="chart-sub">Outstanding amount (₹ Cr)</div>
+      <div class="legend">
+        <span><span class="legend-dot" style="background:#1D9E75;"></span>Home</span>
+        <span><span class="legend-dot" style="background:#378ADD;"></span>Business</span>
+        <span><span class="legend-dot" style="background:#BA7517;"></span>Personal</span>
+        <span><span class="legend-dot" style="background:#D85A30;"></span>Auto</span>
+      </div>
+      <div style="position:relative;width:100%;height:180px;">
+        <canvas id="loanChart" role="img" aria-label="Doughnut chart: Home 72%, Business 20%, Personal 5%, Auto 3%">Home loans dominate at 72% of portfolio.</canvas>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Customer segment mix</div>
+      <div class="chart-sub">By account balance contribution</div>
+      <div class="legend">
+        <span><span class="legend-dot" style="background:#534AB7;"></span>HNI</span>
+        <span><span class="legend-dot" style="background:#1D9E75;"></span>Corporate</span>
+        <span><span class="legend-dot" style="background:#378ADD;"></span>SME</span>
+        <span><span class="legend-dot" style="background:#888780;"></span>Retail</span>
+      </div>
+      <div style="position:relative;width:100%;height:180px;">
+        <canvas id="segChart" role="img" aria-label="Bar chart: HNI 58%, Corporate 25%, SME 12%, Retail 5%">HNI customers hold 58% of deposits.</canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="chart-card" style="margin-bottom:1.25rem;">
+    <div class="chart-title">Monthly transaction volume (2024)</div>
+    <div class="chart-sub">Total amount across all branches · ₹ lakhs</div>
+    <div style="position:relative;width:100%;height:160px;">
+      <canvas id="txnChart" role="img" aria-label="Line chart showing monthly transaction volumes Jan–Apr 2024">Transaction volumes peak in March.</canvas>
+    </div>
+  </div>
+
+  <div class="section-label">window function techniques used</div>
+  <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:1.25rem;">
+    <span class="concept" style="font-size:12px; padding:5px 10px;">RANK() / DENSE_RANK()</span>
+    <span class="concept" style="font-size:12px; padding:5px 10px;">ROW_NUMBER()</span>
+    <span class="concept" style="font-size:12px; padding:5px 10px;">LAG() / LEAD()</span>
+    <span class="concept" style="font-size:12px; padding:5px 10px;">FIRST_VALUE() / LAST_VALUE()</span>
+    <span class="concept" style="font-size:12px; padding:5px 10px;">NTILE()</span>
+    <span class="concept" style="font-size:12px; padding:5px 10px;">PERCENT_RANK()</span>
+    <span class="concept" style="font-size:12px; padding:5px 10px;">CUME_DIST()</span>
+    <span class="concept" style="font-size:12px; padding:5px 10px;">SUM() OVER (ORDER BY)</span>
+    <span class="concept" style="font-size:12px; padding:5px 10px;">AVG() OVER (ROWS frame)</span>
+    <span class="concept" style="font-size:12px; padding:5px 10px;">RANGE BETWEEN INTERVAL</span>
+    <span class="concept" style="font-size:12px; padding:5px 10px;">PARTITION BY</span>
+    <span class="concept" style="font-size:12px; padding:5px 10px;">GROUPING SETS</span>
+    <span class="concept" style="font-size:12px; padding:5px 10px;">Recursive CTE</span>
+    <span class="concept" style="font-size:12px; padding:5px 10px;">STRING_AGG()</span>
+  </div>
+</div>
+
+<div id="panel-queries" class="panel">
+  <div class="query-list" id="queryList"></div>
+</div>
+
+<div id="panel-schema" class="panel">
+  <div class="schema-grid" id="schemaGrid"></div>
+</div>
+
+<div id="panel-files" class="panel">
+  <div class="section-label">Schema & data</div>
+  <div class="file-list">
+    <div class="file-item"><i class="ti ti-file-code file-icon" aria-hidden="true"></i><span class="file-name">01_schema.sql</span><span class="file-desc">9 tables, indexes, constraints</span><span class="file-lines">175 lines</span></div>
+    <div class="file-item"><i class="ti ti-file-code file-icon" aria-hidden="true"></i><span class="file-name">02_seed_data.sql</span><span class="file-desc">Branches, customers, accounts, transactions, loans</span><span class="file-lines">311 lines</span></div>
+  </div>
+  <div class="section-label">Analytical queries</div>
+  <div class="file-list">
+    <div class="file-item"><i class="ti ti-file-code file-icon" aria-hidden="true"></i><span class="file-name">03_customer_analytics.sql</span><span class="file-desc">CLV, RFM, MoM balance, dormancy, cross-sell</span><span class="file-lines">254 lines</span></div>
+    <div class="file-item"><i class="ti ti-file-code file-icon" aria-hidden="true"></i><span class="file-name">04_transaction_analytics.sql</span><span class="file-desc">Running totals, moving avg, channel pivot, AML</span><span class="file-lines">299 lines</span></div>
+    <div class="file-item"><i class="ti ti-file-code file-icon" aria-hidden="true"></i><span class="file-name">05_loan_analytics.sql</span><span class="file-desc">NPA buckets, EMI health score, cohort analysis</span><span class="file-lines">282 lines</span></div>
+    <div class="file-item"><i class="ti ti-file-code file-icon" aria-hidden="true"></i><span class="file-name">06_branch_revenue_analytics.sql</span><span class="file-desc">Branch KPIs, YoY growth, GROUPING SETS, org chart</span><span class="file-lines">282 lines</span></div>
+  </div>
+  <div class="section-label">Views</div>
+  <div class="file-list">
+    <div class="file-item"><i class="ti ti-file-code file-icon" aria-hidden="true"></i><span class="file-name">07_views.sql</span><span class="file-desc">Customer 360, Daily summary, Loan health, NPA watch, Branch KPI</span><span class="file-lines">5 views</span></div>
+  </div>
+  <div class="section-label">Documentation</div>
+  <div class="file-list">
+    <div class="file-item"><i class="ti ti-markdown file-icon" aria-hidden="true"></i><span class="file-name">README.md</span><span class="file-desc">ERD, setup guide, query docs, interview talking points</span><span class="file-lines">120 lines</span></div>
+  </div>
+  <div style="margin-top:1.25rem;padding:14px 16px;background:var(--color-background-secondary);border-radius:var(--border-radius-md);">
+    <div style="font-size:12px;font-weight:500;color:var(--color-text-primary);margin-bottom:6px;"><i class="ti ti-rocket" aria-hidden="true" style="font-size:14px;vertical-align:-2px;margin-right:6px;color:#1D9E75;"></i>Run it free online</div>
+    <div style="font-size:12px;color:var(--color-text-secondary);line-height:1.7;">Create a free project at <strong style="color:var(--color-text-primary);">supabase.com</strong> → SQL Editor → paste files in order (01 → 02 → 07 → queries). Or use <strong style="color:var(--color-text-primary);">pgAdmin</strong> locally with PostgreSQL 15+.</div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+const queries = [
+  { num:'Q1',  title:'Customer Lifetime Value ranking',       tags:['win','cte'],      desc:'Ranks all customers by total relationship value (deposits + loans) using RANK() globally and within each segment. Shows each customer\'s % share of the total book.', concepts:['RANK()','SUM() OVER','PARTITION BY','CTE'] },
+  { num:'Q2',  title:'RFM customer segmentation',            tags:['win','cte'],      desc:'Scores each customer on Recency, Frequency, Monetary using NTILE(4) quartiles. Classifies into Champions, Loyal, Potential Loyalist, At Risk, and Lost segments.', concepts:['NTILE()','AVG() OVER','CTE','CASE'] },
+  { num:'Q3',  title:'Month-over-month balance change',       tags:['win'],            desc:'Uses LAG() and LAST_VALUE() with a full-frame window to track each customer\'s end-of-month deposit balance and compute MoM % change.', concepts:['LAG()','LAST_VALUE()','ROWS frame','DATE_TRUNC'] },
+  { num:'Q4',  title:'Dormant account detection',             tags:['win','cte'],      desc:'Finds accounts with no activity for 90+ days. Uses ROW_NUMBER() to rank dormant accounts within each customer segment for prioritised reactivation campaigns.', concepts:['ROW_NUMBER()','DATE_PART()','CASE','LEFT JOIN'] },
+  { num:'Q5',  title:'Cross-sell gap analysis',               tags:['win','agg'],      desc:'Identifies which customers are missing key products (FD, loan, credit card). Uses AVG() OVER PARTITION to compare a customer\'s product count to segment average.', concepts:['AVG() OVER','STRING_AGG()','CASE pivot','PARTITION BY'] },
+  { num:'Q6',  title:'Running balance & cumulative cash flow', tags:['win'],           desc:'Produces a per-account running ledger using SUM() OVER with ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW — exactly what auditors and reconciliation teams need.', concepts:['SUM() OVER','ROWS frame','Running total','ROW_NUMBER()'] },
+  { num:'Q7',  title:'3-month moving average — branch volume', tags:['win'],           desc:'Smooths monthly transaction volumes per branch using AVG() OVER with a 3-row rolling window. Also computes MoM growth % using LAG().', concepts:['AVG() OVER','ROWS BETWEEN 2 PRECEDING','LAG()','DATE_TRUNC'] },
+  { num:'Q8',  title:'Channel shift pivot (digital adoption)', tags:['agg'],           desc:'Pivots transaction counts by channel (Branch, ATM, UPI, Mobile, NEFT, RTGS) into columns per month. Computes a digital adoption % to track the shift away from physical channels.', concepts:['CASE pivot','SUM() OVER','DATE_TRUNC','Conditional agg'] },
+  { num:'Q9',  title:'High-value transaction percentile',      tags:['win'],           desc:'Ranks every transaction using PERCENT_RANK(), CUME_DIST(), and NTILE(10) to find outliers. Flags transactions above the 95th percentile within their type as High-Value Alerts.', concepts:['PERCENT_RANK()','CUME_DIST()','NTILE()','Alert logic'] },
+  { num:'Q10', title:'Transaction gap analysis',               tags:['win'],           desc:'Uses LAG() on daily activity dates to find stretches of customer inactivity. Classifies gaps as Medium (14-30d), Long (30-60d), or Critical (>60d).', concepts:['LAG()','Date arithmetic','Gap detection','CASE'] },
+  { num:'Q11', title:'AML suspicious pattern detection',       tags:['win','cte'],     desc:'Uses a RANGE BETWEEN INTERVAL \'24 hours\' sliding window to detect structuring, rapid fund sweeps, and high-frequency transactions — key Anti-Money Laundering signals.', concepts:['RANGE BETWEEN INTERVAL','Sliding window','LAG()','AML patterns'] },
+  { num:'Q12', title:'Loan portfolio NPA risk buckets',        tags:['win','cte'],     desc:'Categorises every active loan into Standard, SMA-0/1/2, or NPA based on days past due. Computes portfolio share and ranks loans by exposure within each loan type.', concepts:['RANK()','SUM() OVER','DPD buckets','Portfolio share'] },
+  { num:'Q13', title:'EMI payment consistency score',          tags:['win','cte'],     desc:'Chains LAG() across each borrower\'s payment history to detect on-time streaks. Computes a 0-100 composite payment health score — a direct credit scoring input.', concepts:['LAG() chain','Payment streak','Composite score','RANK()'] },
+  { num:'Q14', title:'Loan cohort / vintage analysis',         tags:['win','cte'],     desc:'Groups loans by disbursement year and type, computing NPA ratio per cohort and a cumulative NPA exposure using SUM() OVER with an unbounded frame.', concepts:['Cohort analysis','SUM() OVER','Vintage','NPA ratio'] },
+  { num:'Q15', title:'Loan officer performance ranking',       tags:['win','cte'],     desc:'Ranks each loan officer within their region using DENSE_RANK(). Uses FIRST_VALUE() to benchmark against the top performer and compute gap from the leader.', concepts:['DENSE_RANK()','FIRST_VALUE()','Benchmark gap','PARTITION BY'] },
+  { num:'Q16', title:'Branch scorecard (deposits, loans, fees)', tags:['win','cte'],   desc:'Joins five CTEs to produce a full branch MIS report: deposits, loan book, NPA ratio, fee income, and credit-deposit ratio — with deposit rank globally and by region.', concepts:['Multi-CTE join','RANK()','CD ratio','SUM() OVER'] },
+  { num:'Q17', title:'Year-over-year branch growth',           tags:['win'],           desc:'Uses LAG() across years per branch to compute YoY % growth in transaction count and volume. Adds a cumulative total-to-date column with an unbounded SUM() OVER.', concepts:['LAG() across years','YoY growth','Cumulative SUM()','DATE_PART'] },
+  { num:'Q18', title:'Interest income forecast',               tags:['win'],           desc:'Computes a 3-month moving average of interest income per product type as a trend baseline, then projects next-month income at +2% growth.', concepts:['Moving average','Projection','LAG()','AVG() OVER'] },
+  { num:'Q19', title:'GROUPING SETS multi-dimensional revenue', tags:['agg'],          desc:'Single query that produces region×branch×product, region×product, region-only, product-only, and grand-total subtotals simultaneously using GROUPING SETS — replacing five separate GROUP BY queries.', concepts:['GROUPING SETS','ROLLUP alternative','Multi-dim agg','COALESCE'] },
+  { num:'Q20', title:'Recursive CTE — employee org chart',     tags:['rec','cte'],     desc:'Walks the manager_id self-join recursively to build the full employee hierarchy. Displays indented names, hierarchy depth, and team-level salary cost using SUM() OVER PARTITION.', concepts:['Recursive CTE','Self-join hierarchy','SUM() OVER','REPEAT()'] },
+];
+
+const tagMap = { win:'Window fn', cte:'CTE', agg:'Aggregation', rec:'Recursive' };
+const tagClass = { win:'tag-win', cte:'tag-cte', agg:'tag-agg', rec:'tag-rec' };
+
+const ql = document.getElementById('queryList');
+queries.forEach((q, i) => {
+  const el = document.createElement('div');
+  el.className = 'q-item';
+  el.innerHTML = `<div class="q-header"><span class="q-num">${q.num}</span><span class="q-title">${q.title}</span>${q.tags.map(t=>`<span class="q-tag ${tagClass[t]}">${tagMap[t]}</span>`).join('')}<i class="ti ti-chevron-down" aria-hidden="true" style="font-size:14px;color:var(--color-text-secondary);transition:transform .2s;"></i></div><div class="q-desc">${q.desc}<div class="q-concepts">${q.concepts.map(c=>`<span class="concept">${c}</span>`).join('')}</div></div>`;
+  el.addEventListener('click', () => {
+    const isOpen = el.classList.contains('open');
+    document.querySelectorAll('.q-item').forEach(x => { x.classList.remove('open'); x.querySelector('.ti-chevron-down').style.transform=''; });
+    if (!isOpen) { el.classList.add('open'); el.querySelector('.ti-chevron-down').style.transform='rotate(180deg)'; }
+  });
+  ql.appendChild(el);
+});
+
+const tables = [
+  { name:'branches',     icon:'ti-building', cols:[{n:'branch_id',t:'pk'},{n:'branch_name',t:''},{n:'city / state',t:''},{n:'region',t:''},{n:'established_on',t:''}] },
+  { name:'employees',    icon:'ti-id-badge', cols:[{n:'employee_id',t:'pk'},{n:'branch_id',t:'fk'},{n:'role',t:''},{n:'salary',t:''},{n:'manager_id',t:'fk'}] },
+  { name:'products',     icon:'ti-package',  cols:[{n:'product_id',t:'pk'},{n:'product_name',t:''},{n:'product_type',t:''},{n:'interest_rate',t:''}] },
+  { name:'customers',    icon:'ti-users',    cols:[{n:'customer_id',t:'pk'},{n:'branch_id',t:'fk'},{n:'employee_id',t:'fk'},{n:'segment',t:''},{n:'kyc_verified',t:''}] },
+  { name:'accounts',     icon:'ti-credit-card', cols:[{n:'account_id',t:'pk'},{n:'customer_id',t:'fk'},{n:'product_id',t:'fk'},{n:'balance',t:''},{n:'status',t:''}] },
+  { name:'transactions', icon:'ti-arrows-exchange', cols:[{n:'txn_id',t:'pk'},{n:'account_id',t:'fk'},{n:'txn_type',t:''},{n:'channel',t:''},{n:'is_flagged',t:''}] },
+  { name:'loans',        icon:'ti-file-invoice', cols:[{n:'loan_id',t:'pk'},{n:'customer_id',t:'fk'},{n:'loan_type',t:''},{n:'outstanding_amt',t:''},{n:'status',t:''}] },
+  { name:'loan_payments',icon:'ti-receipt-2', cols:[{n:'payment_id',t:'pk'},{n:'loan_id',t:'fk'},{n:'days_overdue',t:''},{n:'penalty',t:''}] },
+  { name:'risk_flags',   icon:'ti-alert-triangle', cols:[{n:'flag_id',t:'pk'},{n:'customer_id',t:'fk'},{n:'txn_id',t:'fk'},{n:'severity',t:''},{n:'resolved',t:''}] },
+];
+
+const sg = document.getElementById('schemaGrid');
+tables.forEach(t => {
+  const el = document.createElement('div');
+  el.className = 'table-card';
+  el.innerHTML = `<div class="table-name"><i class="ti ${t.icon}" aria-hidden="true"></i>${t.name}</div><div class="col-list">${t.cols.map(c=>`<div class="${c.t==='pk'?'col-pk':c.t==='fk'?'col-fk':''}">${c.t==='pk'?'🔑 ':c.t==='fk'?'🔗 ':'  '}${c.n}</div>`).join('')}</div>`;
+  sg.appendChild(el);
+});
+
+function switchTab(id) {
+  document.querySelectorAll('.tab').forEach((t,i) => t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  const tabs = ['overview','queries','schema','files'];
+  document.querySelectorAll('.tab')[tabs.indexOf(id)].classList.add('active');
+  document.getElementById('panel-'+id).classList.add('active');
+}
+
+const isDark = matchMedia('(prefers-color-scheme: dark)').matches;
+const gridColor = isDark ? 'rgba(255,255,255,.08)' : 'rgba(0,0,0,.06)';
+const textColor = isDark ? '#aaa' : '#888';
+
+new Chart(document.getElementById('loanChart'), {
+  type: 'doughnut',
+  data: {
+    labels: ['Home','Business','Personal','Auto'],
+    datasets: [{ data: [67.5, 18.9, 4.7, 2.9], backgroundColor: ['#1D9E75','#378ADD','#BA7517','#D85A30'], borderWidth: 0 }]
+  },
+  options: { responsive: true, maintainAspectRatio: false, cutout: '65%', plugins: { legend: { display: false } } }
+});
+
+new Chart(document.getElementById('segChart'), {
+  type: 'bar',
+  data: {
+    labels: ['HNI','Corporate','SME','Retail'],
+    datasets: [{ data: [58, 25, 12, 5], backgroundColor: ['#534AB7','#1D9E75','#378ADD','#888780'], borderWidth: 0, borderRadius: 4 }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { grid: { display: false }, ticks: { color: textColor, font: { size: 11 } } },
+      y: { grid: { color: gridColor }, ticks: { color: textColor, font: { size: 11 }, callback: v => v+'%' } }
+    }
+  }
+});
+
+new Chart(document.getElementById('txnChart'), {
+  type: 'line',
+  data: {
+    labels: ['Jan','Feb','Mar','Apr'],
+    datasets: [{ label: 'Volume (₹L)', data: [42, 58, 71, 39], borderColor: '#1D9E75', backgroundColor: 'rgba(29,158,117,.1)', fill: true, tension: 0.4, pointBackgroundColor: '#1D9E75', pointRadius: 4 }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { grid: { display: false }, ticks: { color: textColor, font: { size: 11 } } },
+      y: { grid: { color: gridColor }, ticks: { color: textColor, font: { size: 11 } } }
+    }
+  }
+});
+</script>
